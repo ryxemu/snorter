@@ -19,9 +19,9 @@ build-prepare:
 	@-mkdir -p bin/
 
 # make a darwin binary
-build-darwin:
-	@echo "build-darwin: building ${VERSION}"
-	GOOS=darwin GOARCH=amd64 CGO_ENABLED=1 go build -buildmode=pie -ldflags="-X main.Version=${VERSION} -s -w" -o bin/${NAME}-darwin main.go
+# +build-darwin:
+#	@echo "build-darwin: building ${VERSION}"
+#	GOOS=darwin GOARCH=amd64 CGO_ENABLED=1 go build -buildmode=pie -ldflags="-X main.Version=${VERSION} -s -w" -o bin/${NAME}-darwin main.go
 
 # make a linux binary
 build-linux:
