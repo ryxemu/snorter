@@ -14,6 +14,10 @@ import (
 	"github.com/inconshreveable/mousetrap"
 )
 
+var (
+	Version = "dev"
+)
+
 func main() {
 	err := run()
 	if err != nil {
@@ -34,6 +38,7 @@ func main() {
 }
 
 func run() error {
+	fmt.Println("Snorter", Version)
 	deviceName := ""
 
 	devs, err := pcap.FindAllDevs()
