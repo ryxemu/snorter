@@ -1,6 +1,6 @@
 module github.com/ryxemu/snorter
 
-go 1.21.4
+go 1.21
 
 require (
 	github.com/google/gopacket v1.1.19
