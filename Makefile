@@ -10,7 +10,7 @@ build:
 
 
 # build all supported versions
-build-all: build-prepare build-linux build-darwin build-windows
+build-all: build-prepare build-linux build-windows
 
 # prep for building
 build-prepare:

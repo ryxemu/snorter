@@ -18,5 +18,4 @@ jobs:
           title: "${{env.VERSION}}"
           files: |
             bin/snorter-linux
-            bin/snorter-darwin
             bin/snorter-windows.exe
