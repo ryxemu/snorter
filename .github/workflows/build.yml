@@ -5,6 +5,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - run: sudo apt install -y libpcap libpcap-dev
       - run: make set-version-${{github.run_number}}
       - run: go get ./...
       - run: make build-all
@@ -17,4 +18,5 @@ jobs:
           title: "${{env.VERSION}}"
           files: |
             bin/snorter-linux
+            bin/snorter-darwin
             bin/snorter-windows.exe
