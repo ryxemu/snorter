@@ -34,3 +34,8 @@ build-windows:
 	@echo "build-windows: building ${VERSION}"
 	GOOS=windows GOARCH=amd64 go build -buildmode=pie -ldflags="-X main.Version=${VERSION} -s -w" -o bin/${NAME}-windows.exe main.go
 	@#GOOS=windows GOARCH=386 go build -buildmode=pie -ldflags="-X main.Version=${VERSION} -s -w" -o bin/${NAME}-windows-x86.exe main.go
+
+
+# CICD triggers this
+set-version-%:
+	@echo "VERSION=${VERSION}.$*" >> $$GITHUB_ENV
