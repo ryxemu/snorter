@@ -1,6 +1,6 @@
 NAME := snorter
 
-VERSION := 0.0.1
+VERSION := 0.0.2
 
 run:
 	cd bin && sudo ./${NAME}

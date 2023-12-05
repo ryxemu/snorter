@@ -98,16 +98,17 @@ func run() error {
 		fmt.Println("If capturing fails, run with the name above as an argument")
 	}
 
-	if len(os.Args) < 2 {
-		deviceName = suggestedDevice
+	deviceName = suggestedDevice
+	if len(os.Args) > 1 {
+		deviceName = os.Args[1]
 	}
+	fmt.Println("Listening on", deviceName)
 
 	handle, err := pcap.OpenLive(deviceName, 1600, false, pcap.BlockForever)
 	if err != nil {
 		return fmt.Errorf("openLive: %w", err)
 	}
 	defer handle.Close()
-	fmt.Println("Listening on", deviceName)
 
 	dumpPath := fmt.Sprintf("snorter-%s.pcap", time.Now().Format("2006-01-02-15-04-05"))
 
