@@ -7,6 +7,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/bubbles/spinner"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
@@ -15,8 +18,61 @@ import (
 )
 
 var (
-	Version = "dev"
+	Version      = "dev"
+	captureCount = 0
 )
+
+type errMsg error
+
+type model struct {
+	spinner  spinner.Model
+	quitting bool
+	err      error
+}
+
+func initialModel() model {
+	s := spinner.New()
+	s.Spinner = spinner.Dot
+	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
+	return model{spinner: s}
+}
+
+func (m model) Init() tea.Cmd {
+	return m.spinner.Tick
+}
+
+func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "q", "esc", "ctrl+c":
+			m.quitting = true
+			return m, tea.Quit
+		default:
+			return m, nil
+		}
+
+	case errMsg:
+		m.err = msg
+		return m, nil
+
+	default:
+		var cmd tea.Cmd
+		m.spinner, cmd = m.spinner.Update(msg)
+		return m, cmd
+	}
+}
+
+func (m model) View() string {
+	if m.err != nil {
+		return m.err.Error()
+	}
+	str := fmt.Sprintf("\n\n   %s %d packets captured...press q to quit\n\n", m.spinner.View(), captureCount)
+	if m.quitting {
+		return str + "\n"
+	}
+	return str
+}
 
 func main() {
 	err := run()
@@ -134,48 +190,63 @@ func run() error {
 		return fmt.Errorf("bpfilter %s: %w", filter, err)
 	}
 
-	captureCount := 0
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
-	for {
-		select {
-		case <-ctx.Done():
-			fmt.Println("Context cancelled")
-			return fmt.Errorf("ctx done: %w", ctx.Err())
-		case pkt := <-packetSource.Packets():
-			err = pcapw.WritePacket(pkt.Metadata().CaptureInfo, pkt.Data())
-			if err != nil {
-				return fmt.Errorf("dump writePacket: %w", err)
-			}
-			captureCount++
-			if captureCount > 10 {
-				fmt.Println("Captured 10 packets, looks like a good interface!")
-			}
 
-			/*ipv4Layer := psPacket.Layer(layers.LayerTypeIPv4)
-			if ipv4Layer == nil {
-				return fmt.Errorf("ipv4Layer nil")
-			}
-			ipv4, ok := ipv4Layer.(*layers.IPv4)
-			if !ok {
-				return fmt.Errorf("ipv4 assert failure")
-			}
-			_, err = fd.Write(ipv4.SrcIP.To16())
-			if err != nil {
-				return fmt.Errorf("write dump header: %w", err)
-			}
-			_, err = fd.Write([]byte(">"))
-			if err != nil {
-				return fmt.Errorf("write dump header: %w", err)
-			}
-			_, err = fd.Write(psPacket.ApplicationLayer().Payload())
-			if err != nil {
-				return fmt.Errorf("write dump: %w", err)
-			}
-			_, err = fd.Write([]byte("||"))
-			if err != nil {
-				return fmt.Errorf("write dump delimiter: %w", err)
-			}*/
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				fmt.Println("Context cancelled")
+				return
+			case pkt := <-packetSource.Packets():
 
+				ipv4Layer := pkt.Layer(layers.LayerTypeIPv4)
+				if ipv4Layer == nil {
+					fmt.Println("ipv4Layer nil")
+					continue
+				}
+				ipv4, ok := ipv4Layer.(*layers.IPv4)
+				if !ok {
+					fmt.Println("ipv4 assert failure")
+					continue
+				}
+
+				srcIP := ipv4.SrcIP.String()
+				dstIP := ipv4.DstIP.String()
+				if !strings.Contains(srcIP, "69.") && !strings.Contains(dstIP, "69.") {
+					continue
+				}
+
+				/*_, err = fd.Write(ipv4.SrcIP.To16())
+				if err != nil {
+					return fmt.Errorf("write dump header: %w", err)
+				}
+				_, err = fd.Write([]byte(">"))
+				if err != nil {
+					return fmt.Errorf("write dump header: %w", err)
+				}
+				_, err = fd.Write(psPacket.ApplicationLayer().Payload())
+				if err != nil {
+					return fmt.Errorf("write dump: %w", err)
+				}
+				_, err = fd.Write([]byte("||"))
+				if err != nil {
+					return fmt.Errorf("write dump delimiter: %w", err)
+				}*/
+
+				err = pcapw.WritePacket(pkt.Metadata().CaptureInfo, pkt.Data())
+				if err != nil {
+					fmt.Println("Failed to write packet:", err)
+					os.Exit(1)
+				}
+				captureCount++
+			}
 		}
+	}()
+	p := tea.NewProgram(initialModel())
+	_, err = p.Run()
+	if err != nil {
+		return fmt.Errorf("tea run: %w", err)
 	}
+	return nil
 }
