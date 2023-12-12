@@ -134,6 +134,7 @@ func run() error {
 		return fmt.Errorf("bpfilter %s: %w", filter, err)
 	}
 
+	captureCount := 0
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
 	for {
 		select {
@@ -145,6 +146,11 @@ func run() error {
 			if err != nil {
 				return fmt.Errorf("dump writePacket: %w", err)
 			}
+			captureCount++
+			if captureCount > 10 {
+				fmt.Println("Captured 10 packets, looks like a good interface!")
+			}
+
 			/*ipv4Layer := psPacket.Layer(layers.LayerTypeIPv4)
 			if ipv4Layer == nil {
 				return fmt.Errorf("ipv4Layer nil")
